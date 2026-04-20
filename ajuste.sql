@@ -96,3 +96,36 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+-- ==========================================================
+-- LLAVE 2: Reloj de Arena (validación de frescura)
+-- ==========================================================
+
+DELIMITER $$
+
+CREATE FUNCTION fn_reloj_arena(p_fecha_ingreso DATE, p_meses_validez INT)
+RETURNS VARCHAR(10)
+DETERMINISTIC
+BEGIN
+    DECLARE fecha_actual DATE;
+    DECLARE fecha_vencimiento DATE;
+    DECLARE estado VARCHAR(10);
+
+    -- Manejo de valores nulos
+    IF p_fecha_ingreso IS NULL OR p_meses_validez IS NULL THEN
+        SET estado = 'Expirado';
+    ELSE
+        SET fecha_actual = CURRENT_DATE();
+        SET fecha_vencimiento = DATE_ADD(p_fecha_ingreso, INTERVAL p_meses_validez MONTH);
+
+        IF fecha_vencimiento >= fecha_actual THEN
+            SET estado = 'Fresco';
+        ELSE
+            SET estado = 'Expirado';
+        END IF;
+    END IF;
+
+    RETURN estado;
+END$$
+
+DELIMITER ;
