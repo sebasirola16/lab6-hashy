@@ -61,3 +61,71 @@ INSERT INTO inventario_pirata (id, nombre_sucio, categoria, precio_finca, priori
 -- ==========================================================
 -- Los únicos IDs que deben generar un Hash al final son el 3 y el 7.
 -- La consulta final debe devolver: hash(ID 3) # hash(ID 7)
+
+-- ==========================================================
+-- LLAVE 1: Cernidor (validación de número primo)
+-- ==========================================================
+
+DELIMITER $$
+
+CREATE FUNCTION fn_cernidor(p_id INT)
+RETURNS BOOLEAN
+DETERMINISTIC
+BEGIN
+    DECLARE es_primo BOOLEAN DEFAULT TRUE;
+    DECLARE divisor INT DEFAULT 2;
+    DECLARE limite INT;
+
+    -- Los números menores o iguales a 1 no son primos
+    IF p_id <= 1 THEN
+        SET es_primo = FALSE;
+    ELSE
+        SET limite = FLOOR(SQRT(p_id));
+
+        ciclo_primos: WHILE divisor <= limite DO
+            IF p_id % divisor = 0 THEN
+                SET es_primo = FALSE;
+                LEAVE ciclo_primos;
+            END IF;
+
+            SET divisor = divisor + 1;
+        END WHILE ciclo_primos;
+    END IF;
+
+    RETURN es_primo;
+END$$
+
+DELIMITER ;
+
+-- ==========================================================
+-- LLAVE 2: Reloj de Arena (validación de frescura)
+-- ==========================================================
+
+DELIMITER $$
+
+CREATE FUNCTION fn_reloj_arena(p_fecha_ingreso DATE, p_meses_validez INT)
+RETURNS VARCHAR(10)
+DETERMINISTIC
+BEGIN
+    DECLARE fecha_actual DATE;
+    DECLARE fecha_vencimiento DATE;
+    DECLARE estado VARCHAR(10);
+
+    -- Manejo de valores nulos
+    IF p_fecha_ingreso IS NULL OR p_meses_validez IS NULL THEN
+        SET estado = 'Expirado';
+    ELSE
+        SET fecha_actual = CURRENT_DATE();
+        SET fecha_vencimiento = DATE_ADD(p_fecha_ingreso, INTERVAL p_meses_validez MONTH);
+
+        IF fecha_vencimiento >= fecha_actual THEN
+            SET estado = 'Fresco';
+        ELSE
+            SET estado = 'Expirado';
+        END IF;
+    END IF;
+
+    RETURN estado;
+END$$
+
+DELIMITER ;
