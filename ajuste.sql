@@ -75,6 +75,11 @@ BEGIN
     DECLARE es_primo BOOLEAN DEFAULT TRUE;
     DECLARE divisor INT DEFAULT 2;
     DECLARE limite INT;
+    -- Manejo de excepciones (5% extra)
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        SET es_primo = FALSE;
+    END;
 
     -- Los números menores o iguales a 1 no son primos
     IF p_id <= 1 THEN
@@ -292,3 +297,25 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+-- ==========================================================
+-- CONSULTA MAESTRA FINAL (PIPELINE DE LAS 7 LLAVES)
+-- ==========================================================
+
+SELECT 
+  GROUP_CONCAT(
+    fn_gran_sello(                         -- LLAVE 7
+      fn_notario(                          -- LLAVE 6
+        fn_escultor(                       -- LLAVE 5
+          fn_purificador(nombre_sucio),    -- LLAVE 4
+          fn_espia_tortuga(categoria, precio_finca)  -- LLAVE 3
+        )
+      )
+    )
+    ORDER BY id ASC
+    SEPARATOR ' # '
+  ) AS resultado_final_del_trio
+FROM inventario_pirata
+WHERE 
+  fn_cernidor(id) = TRUE                  -- LLAVE 1
+  AND fn_reloj_arena(fecha_ingreso, meses_validez) = 'Fresco'; -- LLAVE 2
