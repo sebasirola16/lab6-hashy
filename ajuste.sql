@@ -267,3 +267,28 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+-- ==========================================================
+
+-- LLAVE 7: Gran Sello
+
+DELIMITER $$
+
+CREATE FUNCTION fn_gran_sello(
+    p_texto TEXT
+)
+RETURNS VARCHAR(255)
+DETERMINISTIC
+BEGIN
+    DECLARE v_hash VARCHAR(255) DEFAULT '';
+
+    IF p_texto IS NULL OR p_texto = '' THEN
+        SET v_hash = LPAD(MD5(''), 32, '0');
+    ELSE
+        SET v_hash = LPAD(MD5(p_texto), 32, '0');
+    END IF;
+
+    RETURN v_hash;
+END$$
+
+DELIMITER ;
