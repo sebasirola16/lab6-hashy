@@ -129,5 +129,102 @@ BEGIN
 END$$
 
 DELIMITER ;
+-- ==========================================================
+-- INTEGRANTE B: LLAVES 3 Y 4
+-- Rama: feature/mercado-limpieza
+-- ==========================================================
 
-#Prueba de sincronizacion con GitHub
+DELIMITER $$
+
+CREATE FUNCTION fn_espia_tortuga(
+    p_categoria VARCHAR(100),
+    p_precio_finca DECIMAL(10,2)
+)
+RETURNS DECIMAL(3,2)
+DETERMINISTIC
+BEGIN
+    DECLARE v_precio_mercado DECIMAL(10,2) DEFAULT 0.00;
+    DECLARE v_factor DECIMAL(3,2) DEFAULT 1.00;
+
+    IF p_categoria IS NULL OR p_precio_finca IS NULL THEN
+        RETURN 1.00;
+    END IF;
+
+    SELECT precio_referencia
+    INTO v_precio_mercado
+    FROM mercado_negro
+    WHERE categoria = p_categoria
+    LIMIT 1;
+
+    IF v_precio_mercado IS NULL OR v_precio_mercado = 0.00 THEN
+        SET v_factor = 1.00;
+    ELSEIF p_precio_finca > v_precio_mercado THEN
+        SET v_factor = 1.2;
+    ELSE
+        SET v_factor = 0.8;
+    END IF;
+
+    RETURN v_factor;
+END$$
+
+DELIMITER ;
+
+-- ==========================================================
+
+DELIMITER $$
+
+CREATE FUNCTION fn_purificador(
+    p_nombre TEXT
+)
+RETURNS TEXT
+DETERMINISTIC
+BEGIN
+    DECLARE v_nombre_limpio TEXT DEFAULT '';
+    DECLARE v_nombre_trim TEXT DEFAULT '';
+
+    IF p_nombre IS NULL THEN
+        RETURN '';
+    END IF;
+
+    SET v_nombre_limpio = REGEXP_REPLACE(p_nombre, '[^a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]', '');
+    SET v_nombre_trim = TRIM(v_nombre_limpio);
+
+    RETURN v_nombre_trim;
+END$$
+
+DELIMITER ;
+
+-- ==========================================================
+-- INTEGRANTE C: LLAVES 5, 6 Y 7
+-- Rama: feature/estetica-seguridad
+-- ==========================================================
+
+-- LLAVE 5: Escultor
+
+DELIMITER $$
+
+CREATE FUNCTION fn_escultor(
+    p_nombre TEXT,
+    p_factor  DECIMAL(3,2)
+)
+RETURNS TEXT
+DETERMINISTIC
+BEGIN
+    DECLARE v_resultado TEXT DEFAULT '';
+
+    -- Manejo de nulos
+    IF p_nombre IS NULL OR p_factor IS NULL THEN
+        RETURN '';
+    END IF;
+
+    IF p_factor > 1.00 THEN
+        SET v_resultado = CONCAT(UPPER(p_nombre), '_PREMIUM');
+    ELSE
+        SET v_resultado = CONCAT(LOWER(p_nombre), '_regular');
+    END IF;
+
+    RETURN v_resultado;
+END$$
+
+DELIMITER ;
+
