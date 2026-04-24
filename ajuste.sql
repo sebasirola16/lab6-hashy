@@ -228,3 +228,42 @@ END$$
 
 DELIMITER ;
 
+-- ==========================================================
+
+-- LLAVE 6: Notario
+
+DELIMITER $$
+
+CREATE FUNCTION fn_notario(
+    p_texto TEXT
+)
+RETURNS TEXT
+-- NOT DETERMINISTIC porque hace un INSERT (modifica estado)
+NOT DETERMINISTIC
+BEGIN
+    DECLARE v_usuario  VARCHAR(100);
+    DECLARE v_mensaje  TEXT;
+    DECLARE v_ahora    TIMESTAMP;
+
+    SET v_usuario = CURRENT_USER();
+    SET v_ahora   = NOW();
+
+    IF p_texto IS NULL OR p_texto = '' THEN
+        SET v_mensaje = CONCAT(
+            '[', v_ahora, '] Usuario: ', v_usuario,
+            ' | Estado: TEXTO VACÍO o NULO procesado por el pipeline.'
+        );
+    ELSE
+        SET v_mensaje = CONCAT(
+            '[', v_ahora, '] Usuario: ', v_usuario,
+            ' | Texto procesado hasta este punto: "', p_texto, '"'
+        );
+    END IF;
+
+    INSERT INTO logs_hashy (nombre_funcion, fecha_ejecucion, mensaje_accion, usuario_db)
+    VALUES ('fn_notario', v_ahora, v_mensaje, v_usuario);
+
+    RETURN COALESCE(p_texto, '');
+END$$
+
+DELIMITER ;
