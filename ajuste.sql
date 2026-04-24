@@ -75,6 +75,11 @@ BEGIN
     DECLARE es_primo BOOLEAN DEFAULT TRUE;
     DECLARE divisor INT DEFAULT 2;
     DECLARE limite INT;
+    -- Manejo de excepciones (5% extra)
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        SET es_primo = FALSE;
+    END;
 
     -- Los números menores o iguales a 1 no son primos
     IF p_id <= 1 THEN
@@ -194,3 +199,123 @@ END$$
 
 DELIMITER ;
 
+-- ==========================================================
+-- INTEGRANTE C: LLAVES 5, 6 Y 7
+-- Rama: feature/estetica-seguridad
+-- ==========================================================
+
+-- LLAVE 5: Escultor
+
+DELIMITER $$
+
+CREATE FUNCTION fn_escultor(
+    p_nombre TEXT,
+    p_factor  DECIMAL(3,2)
+)
+RETURNS TEXT
+DETERMINISTIC
+BEGIN
+    DECLARE v_resultado TEXT DEFAULT '';
+
+    -- Manejo de nulos
+    IF p_nombre IS NULL OR p_factor IS NULL THEN
+        RETURN '';
+    END IF;
+
+    IF p_factor > 1.00 THEN
+        SET v_resultado = CONCAT(UPPER(p_nombre), '_PREMIUM');
+    ELSE
+        SET v_resultado = CONCAT(LOWER(p_nombre), '_regular');
+    END IF;
+
+    RETURN v_resultado;
+END$$
+
+DELIMITER ;
+
+-- ==========================================================
+
+-- LLAVE 6: Notario
+
+DELIMITER $$
+
+CREATE FUNCTION fn_notario(
+    p_texto TEXT
+)
+RETURNS TEXT
+-- NOT DETERMINISTIC porque hace un INSERT (modifica estado)
+NOT DETERMINISTIC
+BEGIN
+    DECLARE v_usuario  VARCHAR(100);
+    DECLARE v_mensaje  TEXT;
+    DECLARE v_ahora    TIMESTAMP;
+
+    SET v_usuario = CURRENT_USER();
+    SET v_ahora   = NOW();
+
+    IF p_texto IS NULL OR p_texto = '' THEN
+        SET v_mensaje = CONCAT(
+            '[', v_ahora, '] Usuario: ', v_usuario,
+            ' | Estado: TEXTO VACÍO o NULO procesado por el pipeline.'
+        );
+    ELSE
+        SET v_mensaje = CONCAT(
+            '[', v_ahora, '] Usuario: ', v_usuario,
+            ' | Texto procesado hasta este punto: "', p_texto, '"'
+        );
+    END IF;
+
+    INSERT INTO logs_hashy (nombre_funcion, fecha_ejecucion, mensaje_accion, usuario_db)
+    VALUES ('fn_notario', v_ahora, v_mensaje, v_usuario);
+
+    RETURN COALESCE(p_texto, '');
+END$$
+
+DELIMITER ;
+
+-- ==========================================================
+
+-- LLAVE 7: Gran Sello
+
+DELIMITER $$
+
+CREATE FUNCTION fn_gran_sello(
+    p_texto TEXT
+)
+RETURNS VARCHAR(255)
+DETERMINISTIC
+BEGIN
+    DECLARE v_hash VARCHAR(255) DEFAULT '';
+
+    IF p_texto IS NULL OR p_texto = '' THEN
+        SET v_hash = LPAD(MD5(''), 32, '0');
+    ELSE
+        SET v_hash = LPAD(MD5(p_texto), 32, '0');
+    END IF;
+
+    RETURN v_hash;
+END$$
+
+DELIMITER ;
+
+-- ==========================================================
+-- CONSULTA MAESTRA FINAL (PIPELINE DE LAS 7 LLAVES)
+-- ==========================================================
+
+SELECT 
+  GROUP_CONCAT(
+    fn_gran_sello(                         -- LLAVE 7
+      fn_notario(                          -- LLAVE 6
+        fn_escultor(                       -- LLAVE 5
+          fn_purificador(nombre_sucio),    -- LLAVE 4
+          fn_espia_tortuga(categoria, precio_finca)  -- LLAVE 3
+        )
+      )
+    )
+    ORDER BY id ASC
+    SEPARATOR ' # '
+  ) AS resultado_final_del_trio
+FROM inventario_pirata
+WHERE 
+  fn_cernidor(id) = TRUE                  -- LLAVE 1
+  AND fn_reloj_arena(fecha_ingreso, meses_validez) = 'Fresco'; -- LLAVE 2
